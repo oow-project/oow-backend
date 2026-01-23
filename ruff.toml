@@ -1,0 +1,21 @@
+line-length = 100                                                                                                                                                                                                                                                                                                                                                                 
+target-version = "py311"                                                                                                            
+                                                                                                                                
+[lint]                                                                                                                                                                                                                                                   
+select = [                                                                                                                          
+    "E",     # pycodestyle 에러                                                                                                       
+    "W",     # pycodestyle 경고                                                                                                       
+    "F",     # pyflakes                                                                                                               
+    "I",     # isort (import 정렬)                                                                                                    
+    "UP",    # pyupgrade (최신 문법 권장)                                                                                             
+    "B",     # flake8-bugbear (버그 방지)                                                                                             
+    ]                                                                                                                                   
+ignore = []                                                                                                                         
+                                                                                                                                
+[lint.isort]                                                                                                                                                                                                                                         
+known-third-party = ["fastapi", "pydantic", "supabase"]                                                                             
+                                                                                                                                
+[format]                                                                                                                                                                                                                                                  
+quote-style = "double"                                                                                                              
+indent-style = "space"                                                                                                              
+                                                                                                                                                                                                                                                                   
