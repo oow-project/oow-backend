@@ -1,9 +1,22 @@
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
-app = FastAPI(title="OOW.GG API")
+from app.config.supabase import init_supabase
+from app.exceptions import AppError
+from app.routers import heroes
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_supabase()
+    yield
+
+
+app = FastAPI(title="OOW.GG API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -13,10 +26,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(heroes.router)
+
+
+@app.exception_handler(AppError)
+async def handle_app_error(request, exc: AppError):
+    return JSONResponse(status_code=exc.status_code, content={"error": exc.message})
+
+
+@app.exception_handler(Exception)
+async def handle_unexpected(request, exc: Exception):
+    return JSONResponse(
+        status_code=500, content={"error": "서버 내부 오류가 발생했습니다"}
+    )
+
 
 @app.get("/health")
 async def health_check():
-    return {
-        "status": "ok",
-        "timestamp": datetime.now(UTC).isoformat(),
-    }
+    return {"status": "ok", "timestamp": datetime.now(UTC).isoformat()}
