@@ -38,9 +38,6 @@ class HeroDetailResponse(BaseModel):
     name: str
     portrait: str
     role: str
-    description: str | None
-    location: str | None
-    age: int | None
     hitpoints: Hitpoints
     abilities: list[Ability]
     perks: list[Perk]

@@ -64,9 +64,6 @@ async def get_hero_detail(hero_key: str) -> dict:
         "name": hero["name"],
         "portrait": hero["portrait"],
         "role": hero["role"],
-        "description": hero.get("description"),
-        "location": hero.get("location"),
-        "age": hero.get("age"),
         "hitpoints": {
             "health": hero.get("hitpoints_health", 0),
             "armor": hero.get("hitpoints_armor", 0),
