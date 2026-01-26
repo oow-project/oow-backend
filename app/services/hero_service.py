@@ -40,6 +40,25 @@ async def get_hero_detail(hero_key: str) -> dict:
         "name, description, icon, type"
     ).eq("hero_key", hero_key).execute()
 
+    counters_response = await supabase.table("hero_counters").select(
+        "counter_key"
+    ).eq("hero_key", hero_key).execute()
+    counter_keys = [c["counter_key"] for c in counters_response.data]
+
+    synergies_response = await supabase.table("hero_synergies").select(
+        "synergy_key"
+    ).eq("hero_key", hero_key).execute()
+    synergy_keys = [s["synergy_key"] for s in synergies_response.data]
+
+    related_keys = list(set(counter_keys + synergy_keys))
+    if related_keys:
+        related_response = await supabase.table("heroes").select(
+            "key, name, portrait, role"
+        ).in_("key", related_keys).execute()
+        related_map = {h["key"]: h for h in related_response.data}
+    else:
+        related_map = {}
+
     return {
         "key": hero["key"],
         "name": hero["name"],
@@ -60,4 +79,6 @@ async def get_hero_detail(hero_key: str) -> dict:
         },
         "abilities": abilities_response.data,
         "perks": perks_response.data,
+        "counters": [related_map[k] for k in counter_keys if k in related_map],
+        "synergies": [related_map[k] for k in synergy_keys if k in related_map],
     }

@@ -2,10 +2,10 @@ from pydantic import BaseModel
 
 
 class HeroItem(BaseModel):
-      key: str
-      name: str
-      portrait: str
-      role: str
+    key: str
+    name: str
+    portrait: str
+    role: str
 
 
 class HeroListResponse(BaseModel):
@@ -44,3 +44,5 @@ class HeroDetailResponse(BaseModel):
     hitpoints: Hitpoints
     abilities: list[Ability]
     perks: list[Perk]
+    counters: list[HeroItem]
+    synergies: list[HeroItem]
