@@ -8,7 +8,7 @@ router = APIRouter(prefix="/api/heroes", tags=["heroes"])
 
 
 @router.get("", response_model=HeroListResponse)
-async def get_heroes(role: str | None = Query(default=None)):
+async def get_heroes(role: str = Query(default="all")):
     """영웅 목록을 조회한다."""
     heroes = await get_heroes_service(role)
     return HeroListResponse(heroes=heroes, total=len(heroes))

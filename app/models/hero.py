@@ -51,7 +51,7 @@ class StatsFilters(BaseModel):
     gamemode: str
     region: str
     competitive_division: str
-    role: str 
+    role: str
 
 
 class StatsResponse(BaseModel):
