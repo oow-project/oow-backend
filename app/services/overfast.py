@@ -40,3 +40,45 @@ async def fetch_hero_detail(hero_key: str, locale: str | None = None) -> dict:
         )
         response.raise_for_status()
         return response.json()
+
+
+async def fetch_hero_stats(
+    platform: str = "pc",
+    gamemode: str = "competitive",
+    region: str = "asia",
+    competitive_division: str | None = None,
+    client: httpx.AsyncClient | None = None,
+) -> list[dict]:
+    """Overfast API에서 영웅 통계를 가져온다.
+    Args:
+        platform: "pc" | "console"
+        gamemode: "competitive" | "quickplay"
+        region: "asia" | "europe" | "americas"
+        competitive_division: "bronze" ~ "grandmaster", None이면 전체 통합
+        client: 재사용할 httpx 클라이언트. None이면 내부에서 생성
+    """
+    params: dict[str, str] = {
+        "platform": platform,
+        "gamemode": gamemode,
+        "region": region,
+    }
+    if competitive_division:
+        params["competitive_division"] = competitive_division
+
+    if client:
+        response = await client.get(
+            f"{OVERFAST_BASE_URL}/heroes/stats",
+            params=params,
+            timeout=30.0,
+        )
+        response.raise_for_status()
+        return response.json()
+
+    async with httpx.AsyncClient() as new_client:
+        response = await new_client.get(
+            f"{OVERFAST_BASE_URL}/heroes/stats",
+            params=params,
+            timeout=30.0,
+        )
+        response.raise_for_status()
+        return response.json()
