@@ -42,8 +42,8 @@ class HeroDetailResponse(HeroItem):
 
 
 class HeroStatItem(HeroItem):
-    winrate: float | None
-    pickrate: float | None
+    winrate: float
+    pickrate: float
 
 
 class StatsFilters(BaseModel):

@@ -1,14 +1,30 @@
 from app.config.supabase import get_supabase
 from app.exceptions import InvalidParameterError, NotFoundError
 
-VALID_ROLES = {"all", "tank", "damage", "support"}
+VALID_ROLES = {"tank", "damage", "support"}
+VALID_ROLE_FILTERS = {"all"} | VALID_ROLES
+VALID_PLATFORMS = {"pc", "console"}
+VALID_GAMEMODES = {"competitive", "quickplay"}
+VALID_REGIONS = {"asia", "europe", "americas"}
+VALID_DIVISIONS = {
+    "all",
+    "bronze",
+    "silver",
+    "gold",
+    "platinum",
+    "diamond",
+    "master",
+    "grandmaster",
+}
+VALID_ORDER_FIELDS = {"winrate", "pickrate"}
+VALID_ORDER_DIRS = {"asc", "desc"}
 
 
 async def get_heroes(role: str = "all") -> list[dict]:
     """영웅 목록을 조회한다."""
-    if role not in VALID_ROLES:
+    if role not in VALID_ROLE_FILTERS:
         raise InvalidParameterError(
-            "유효하지 않은 역할입니다. tank, damage, support 중 하나를 입력하세요."
+            "유효하지 않은 역할입니다. all, tank, damage, support 중 하나를 입력하세요."
         )
 
     supabase = get_supabase()
@@ -78,4 +94,91 @@ async def get_hero_detail(hero_key: str) -> dict:
         "perks": perks_response.data,
         "counters": [related_map[k] for k in counter_keys if k in related_map],
         "synergies": [related_map[k] for k in synergy_keys if k in related_map],
+    }
+
+
+async def get_hero_stats(
+    platform: str = "pc",
+    gamemode: str = "competitive",
+    region: str = "asia",
+    competitive_division: str = "all",
+    role: str = "all",
+    order_by: str = "winrate:desc",
+) -> dict:
+    """영웅 통계를 조회한다."""
+    if platform not in VALID_PLATFORMS:
+        raise InvalidParameterError(
+            f"유효하지 않은 플랫폼입니다. {', '.join(VALID_PLATFORMS)} 중 하나를 입력하세요."
+        )
+    if gamemode not in VALID_GAMEMODES:
+        raise InvalidParameterError(
+            f"유효하지 않은 게임모드입니다. {', '.join(VALID_GAMEMODES)} 중 하나를 입력하세요."
+        )
+    if region not in VALID_REGIONS:
+        raise InvalidParameterError(
+            f"유효하지 않은 지역입니다. {', '.join(VALID_REGIONS)} 중 하나를 입력하세요."
+        )
+    if competitive_division not in VALID_DIVISIONS:
+        raise InvalidParameterError(
+            f"유효하지 않은 티어입니다. {', '.join(VALID_DIVISIONS)} 중 하나를 입력하세요."
+        )
+    if role not in VALID_ROLE_FILTERS:
+        raise InvalidParameterError(
+            "유효하지 않은 역할입니다. all, tank, damage, support 중 하나를 입력하세요."
+        )
+
+    parts = order_by.split(":")
+    if len(parts) != 2 or parts[0] not in VALID_ORDER_FIELDS or parts[1] not in VALID_ORDER_DIRS:
+        raise InvalidParameterError(
+            "유효하지 않은 정렬입니다. 예: winrate:desc, pickrate:asc"
+        )
+    order_field, order_dir = parts
+
+    supabase = get_supabase()
+
+    query = (
+        supabase.table("hero_stats")
+        .select("hero_key, winrate, pickrate, synced_at, heroes(name, portrait, role)")
+        .eq("platform", platform)
+        .eq("gamemode", gamemode)
+        .eq("region", region)
+        .eq("competitive_division", competitive_division)
+    )
+
+    if role != "all":
+        query = query.eq("heroes.role", role)
+
+    query = query.order(order_field, desc=(order_dir == "desc"))
+
+    response = await query.execute()
+
+    stats = []
+    synced_at = None
+
+    for row in response.data:
+        hero = row.get("heroes")
+        if not hero:
+            continue
+        stats.append({
+            "key": row["hero_key"],
+            "name": hero["name"],
+            "portrait": hero["portrait"],
+            "role": hero["role"],
+            "winrate": row["winrate"],
+            "pickrate": row["pickrate"],
+        })
+        if synced_at is None and row.get("synced_at"):
+            synced_at = row["synced_at"]
+
+    return {
+        "stats": stats,
+        "filters": {
+            "platform": platform,
+            "gamemode": gamemode,
+            "region": region,
+            "competitive_division": competitive_division,
+            "role": role,
+        },
+        "total": len(stats),
+        "synced_at": synced_at,
     }
