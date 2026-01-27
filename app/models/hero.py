@@ -33,13 +33,29 @@ class Hitpoints(BaseModel):
     total: int
 
 
-class HeroDetailResponse(BaseModel):
-    key: str
-    name: str
-    portrait: str
-    role: str
+class HeroDetailResponse(HeroItem):
     hitpoints: Hitpoints
     abilities: list[Ability]
     perks: list[Perk]
     counters: list[HeroItem]
     synergies: list[HeroItem]
+
+
+class HeroStatItem(HeroItem):
+    winrate: float | None
+    pickrate: float | None
+
+
+class StatsFilters(BaseModel):
+    platform: str
+    gamemode: str
+    region: str
+    competitive_division: str
+    role: str 
+
+
+class StatsResponse(BaseModel):
+    stats: list[HeroStatItem]
+    filters: StatsFilters
+    total: int
+    synced_at: str | None
