@@ -8,12 +8,15 @@ from fastapi.responses import JSONResponse
 from app.config.supabase import init_supabase
 from app.exceptions import AppError
 from app.routers import heroes
+from app.scheduler.scheduler import shutdown_scheduler, start_scheduler
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_supabase()
+    start_scheduler()
     yield
+    shutdown_scheduler()
 
 
 app = FastAPI(title="OOW.GG API", lifespan=lifespan)
