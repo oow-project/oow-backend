@@ -47,24 +47,20 @@ async def get_hero_detail(hero_key: str) -> dict:
         raise NotFoundError("존재하지 않는 영웅입니다")
 
     hero = hero_response.data[0]
+    health = hero.get("hitpoints_health", 0)
+    armor = hero.get("hitpoints_armor", 0)
+    shields = hero.get("hitpoints_shields", 0)
 
     abilities_response = await supabase.table("hero_abilities").select(
-        "name, description, icon"
+        "name, description, icon, ability_type"
     ).eq("hero_key", hero_key).execute()
 
-    perks_response = await supabase.table("hero_perks").select(
-        "name, description, icon, type"
-    ).eq("hero_key", hero_key).execute()
+    abilities_grouped = {"skill": [], "perk_major": [], "perk_minor": []}
+    for ability in abilities_response.data:
+        abilities_grouped[ability["ability_type"]].append(ability)
 
-    counters_response = await supabase.table("hero_counters").select(
-        "counter_key"
-    ).eq("hero_key", hero_key).execute()
-    counter_keys = [c["counter_key"] for c in counters_response.data]
-
-    synergies_response = await supabase.table("hero_synergies").select(
-        "synergy_key"
-    ).eq("hero_key", hero_key).execute()
-    synergy_keys = [s["synergy_key"] for s in synergies_response.data]
+    counter_keys = hero.get("counters") or []
+    synergy_keys = hero.get("synergies") or []
 
     related_keys = list(set(counter_keys + synergy_keys))
     if related_keys:
@@ -81,17 +77,12 @@ async def get_hero_detail(hero_key: str) -> dict:
         "portrait": hero["portrait"],
         "role": hero["role"],
         "hitpoints": {
-            "health": hero.get("hitpoints_health", 0),
-            "armor": hero.get("hitpoints_armor", 0),
-            "shields": hero.get("hitpoints_shields", 0),
-            "total": (
-                hero.get("hitpoints_health", 0)
-                + hero.get("hitpoints_armor", 0)
-                + hero.get("hitpoints_shields", 0)
-            ),
+            "health": health,
+            "armor": armor,
+            "shields": shields,
+            "total": health + armor + shields,
         },
-        "abilities": abilities_response.data,
-        "perks": perks_response.data,
+        "abilities": abilities_grouped,
         "counters": [related_map[k] for k in counter_keys if k in related_map],
         "synergies": [related_map[k] for k in synergy_keys if k in related_map],
     }
