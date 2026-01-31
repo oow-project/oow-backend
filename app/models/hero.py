@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel
 
 
@@ -5,7 +7,7 @@ class HeroItem(BaseModel):
     key: str
     name: str
     portrait: str
-    role: str
+    role: Literal["tank", "damage", "support"]
 
 
 class HeroListResponse(BaseModel):
@@ -17,13 +19,7 @@ class Ability(BaseModel):
     name: str
     description: str
     icon: str
-
-
-class Perk(BaseModel):
-    name: str
-    description: str
-    icon: str
-    type: str
+    ability_type: Literal["skill", "perk_major", "perk_minor"]
 
 
 class Hitpoints(BaseModel):
@@ -35,8 +31,7 @@ class Hitpoints(BaseModel):
 
 class HeroDetailResponse(HeroItem):
     hitpoints: Hitpoints
-    abilities: list[Ability]
-    perks: list[Perk]
+    abilities: dict[str, list[Ability]]
     counters: list[HeroItem]
     synergies: list[HeroItem]
 
