@@ -59,9 +59,6 @@ async def _upsert_hero_info(
         "name": detail.get("name", ""),
         "portrait": hero_list_item.get("portrait", ""),
         "role": detail.get("role", ""),
-        "description": detail.get("description", ""),
-        "location": detail.get("location"),
-        "age": detail.get("age"),
         "hitpoints_health": detail.get("hitpoints", {}).get("health", 0),
         "hitpoints_armor": detail.get("hitpoints", {}).get("armor", 0),
         "hitpoints_shields": detail.get("hitpoints", {}).get("shields", 0),
@@ -82,6 +79,7 @@ async def _upsert_hero_abilities(
             "name": ability.get("name", ""),
             "description": ability.get("description", ""),
             "icon": ability.get("icon", ""),
+            "ability_type": "skill",
         }
         await supabase.table("hero_abilities").upsert(
             row, on_conflict="hero_key,name"
@@ -277,7 +275,7 @@ async def sync_heroes() -> None:
 
 
 async def sync_hero_stats() -> None:
-    """영웅 통계를 동기화한다. (1시간 1회)"""
+    """영웅 통계를 동기화한다. (3시간 1회)"""
     started_at = datetime.now(UTC)
     supabase = get_supabase()
     synced_at = datetime.now(UTC).isoformat()

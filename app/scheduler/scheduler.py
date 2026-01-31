@@ -32,7 +32,7 @@ def start_scheduler() -> None:
 
     _scheduler.add_job(
         sync_hero_stats,
-        trigger=CronTrigger(minute="0,30"),
+        trigger=CronTrigger(hour="*/3", minute=0),
         id="sync_hero_stats",
         max_instances=1,
     )
