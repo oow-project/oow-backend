@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 
 from app.config.supabase import init_supabase
 from app.exceptions import AppError
-from app.routers import heroes
+from app.routers import chat, heroes
 from app.scheduler.scheduler import shutdown_scheduler, start_scheduler
 
 
@@ -30,6 +30,7 @@ app.add_middleware(
 )
 
 app.include_router(heroes.router)
+app.include_router(chat.router)
 
 
 @app.exception_handler(AppError)
