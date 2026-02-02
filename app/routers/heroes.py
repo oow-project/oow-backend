@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Path, Query
 
-from app.models.hero import HeroDetailResponse, HeroListResponse, StatsResponse
+from app.schemas.hero import HeroDetailResponse, HeroListResponse, StatsResponse
 from app.services.hero_service import get_hero_detail, get_hero_stats
 from app.services.hero_service import get_heroes as get_heroes_service
 from app.utils.cache import get_or_set_cache
