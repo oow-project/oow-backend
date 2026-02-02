@@ -9,6 +9,7 @@ from app.schemas.conversation import (
     ConversationListResponse,
     ConversationResponse,
     MessagesResponse,
+    MigrateRequest,
 )
 from app.services import conversation_service
 
@@ -67,3 +68,17 @@ async def delete_conversation(
         user_id=user["id"],
         conversation_id=conversation_id,
     )
+
+
+@router.post("/migrate", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED)
+async def migrate_conversation(
+    request: MigrateRequest,
+    user: UserDep,
+):
+    """비회원 대화를 DB로 마이그레이션"""
+    conversation = await conversation_service.migrate_conversation(
+        user_id=user["id"],
+        messages=[msg.model_dump() for msg in request.messages],
+        tag=request.tag,
+    )
+    return conversation

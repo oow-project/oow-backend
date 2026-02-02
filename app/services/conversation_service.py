@@ -101,3 +101,24 @@ async def add_message(
     }).execute()
 
     return response.data[0]
+
+
+async def migrate_conversation(
+    user_id: UUID,
+    messages: list[dict],
+    tag: str = "general",
+) -> dict:
+    """비회원 대화를 DB로 마이그레이션"""
+    first_message = messages[0]["content"] if messages else "새 대화"
+    title = first_message[:20] + "..." if len(first_message) > 20 else first_message
+
+    conversation = await create_conversation(user_id, title, tag)
+
+    for msg in messages:
+        await add_message(
+            conversation_id=conversation["id"],
+            role=msg["role"],
+            content=msg["content"],
+        )
+
+    return conversation

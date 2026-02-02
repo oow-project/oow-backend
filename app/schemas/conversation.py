@@ -37,3 +37,15 @@ class MessagesResponse(BaseModel):
     """메시지 목록 응답"""
     messages: list[MessageResponse]
     total: int
+
+
+class MigrateMessage(BaseModel):
+    """마이그레이션용 메시지"""
+    role: str
+    content: str
+
+
+class MigrateRequest(BaseModel):
+    """비회원 대화 마이그레이션 요청"""
+    messages: list[MigrateMessage]
+    tag: str = "general"
