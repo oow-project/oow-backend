@@ -1,6 +1,7 @@
 from fastapi import HTTPException, Request
 
 from app.config.redis import get_redis
+from app.dependencies.auth import get_current_user_or_none
 
 GUEST_LIMIT = 3
 MEMBER_LIMIT = 15
@@ -22,7 +23,8 @@ async def check_rate_limit(request: Request) -> dict:
     """
     redis = get_redis()
 
-    user_id = None
+    user = await get_current_user_or_none(request)
+    user_id = user["id"] if user else None
 
     if user_id:
         key = f"rate:user:{user_id}"
