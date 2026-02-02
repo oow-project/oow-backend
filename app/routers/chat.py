@@ -1,23 +1,14 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Response
-from pydantic import BaseModel
 
 from app.ai.agent import generate_response
 from app.dependencies.rate_limit import check_rate_limit
+from app.schemas.chat import ChatRequest, ChatResponse
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
 RateLimitDep = Annotated[dict, Depends(check_rate_limit)]
-
-
-class ChatRequest(BaseModel):
-    message: str
-    context: dict | None = None
-
-
-class ChatResponse(BaseModel):
-    response: str
 
 
 @router.post("", response_model=ChatResponse)
@@ -33,6 +24,6 @@ async def chat(
 
     chat_message = await generate_response(
         user_input=request.message,
-        context=request.context,
+        tag=request.tag,
     )
     return ChatResponse(response=chat_message)
