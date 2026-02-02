@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.config.redis import init_redis
 from app.config.supabase import init_supabase
 from app.exceptions import AppError
 from app.routers import chat, heroes
@@ -14,6 +15,7 @@ from app.scheduler.scheduler import shutdown_scheduler, start_scheduler
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_supabase()
+    await init_redis()
     start_scheduler()
     yield
     shutdown_scheduler()

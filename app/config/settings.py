@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     openai_model: str
     openai_temperature: float
     tavily_api_key: str
+    redis_url: str
 
     class Config:
         env_file = ".env"
