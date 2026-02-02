@@ -50,7 +50,7 @@ def get_agent_executor() -> AgentExecutor:
 
 async def generate_response(
     user_input: str,
-    context: dict | None = None,
+    tag: str = "general",
     chat_history: list | None = None,
 ) -> str:
     """
@@ -58,7 +58,7 @@ async def generate_response(
 
     Args:
         user_input: 사용자 질문
-        context: 현재 페이지 컨텍스트 (예: {"page": "hero_detail", "heroKey": "ana"})
+        tag: 대화 태그 (영웅 이름 or "general")
         chat_history: 이전 대화 기록
 
     Returns:
@@ -68,8 +68,8 @@ async def generate_response(
 
     enhanced_input = user_input
 
-    if context and context.get("heroKey"):
-        enhanced_input = f"[현재 {context['heroKey']} 영웅 페이지] {user_input}"
+    if tag != "general":
+        enhanced_input = f"[현재 {tag} 영웅 관련] {user_input}"
 
     result = await executor.ainvoke({
         "input": enhanced_input,
