@@ -6,6 +6,7 @@ import httpx
 
 from app.config.supabase import get_supabase
 from app.services.overfast import fetch_hero_detail, fetch_hero_stats, fetch_heroes
+from app.utils.cache import invalidate_cache
 
 logger = logging.getLogger(__name__)
 
@@ -262,7 +263,10 @@ async def sync_heroes() -> None:
             f"실패한 영웅: {', '.join(failed_heroes)}" if failed_heroes else None
         )
         await _log_sync(supabase, "sync_heroes", status, started_at, error_msg)
+        await invalidate_cache("cache:heroes:*")
+        await invalidate_cache("cache:heroDetail:*")
 
+        logger.info("영웅 캐시 무효화 완료")
         logger.info(
             "sync_heroes 완료: 성공 %d, 실패 %d",
             len(heroes) - len(failed_heroes),
@@ -301,9 +305,12 @@ async def sync_hero_stats() -> None:
 
         status = "failed" if failed > 0 else "success"
         error_msg = f"{failed}건 실패" if failed > 0 else None
+
         await _log_sync(supabase, "sync_hero_stats", status, started_at, error_msg)
+        await invalidate_cache("cache:stats:*")
 
         logger.info("sync_hero_stats 완료: %d건 저장, %d건 실패", total_saved, failed)
+        logger.info("통계 캐시 무효화 완료")
 
     except Exception as e:
         logger.error("sync_hero_stats 치명적 오류: %s", e)
