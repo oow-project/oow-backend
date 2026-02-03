@@ -46,7 +46,7 @@ async def get_conversation_messages(
     """채팅방의 메시지를 조회한다."""
     supabase = get_supabase()
 
-    conv_response = await (
+    conversation_response = await (
         supabase.table("conversations")
         .select("id")
         .eq("id", str(conversation_id))
@@ -54,10 +54,10 @@ async def get_conversation_messages(
         .execute()
     )
 
-    if not conv_response.data:
+    if not conversation_response.data:
         raise NotFoundError("채팅방을 찾을 수 없습니다")
 
-    msg_response = await (
+    message_response = await (
         supabase.table("chat_messages")
         .select("id, role, content, created_at")
         .eq("conversation_id", str(conversation_id))
@@ -65,7 +65,7 @@ async def get_conversation_messages(
         .execute()
     )
 
-    return msg_response.data
+    return message_response.data
 
 
 async def delete_conversation(user_id: UUID, conversation_id: UUID) -> bool:
@@ -114,11 +114,11 @@ async def migrate_conversation(
 
     conversation = await create_conversation(user_id, title, tag)
 
-    for msg in messages:
+    for message in messages:
         await add_message(
             conversation_id=conversation["id"],
-            role=msg["role"],
-            content=msg["content"],
+            role=message["role"],
+            content=message["content"],
         )
 
     return conversation

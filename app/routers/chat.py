@@ -4,7 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 
-from app.ai.agent import generate_response_stream
+from app.ai.agent import generate_response_stream, generate_title
 from app.dependencies.auth import get_current_user_or_none
 from app.dependencies.rate_limit import check_rate_limit
 from app.schemas.chat import ChatRequest
@@ -25,7 +25,6 @@ async def chat(
     """AI 채팅 응답 생성 (스트리밍)"""
 
     is_logged_in = user is not None
-    has_conversation = request.conversation_id is not None
 
     async def event_generator():
         full_response = ""
@@ -41,17 +40,33 @@ async def chat(
                 data = json.loads(chunk.replace("data: ", "").strip())
                 full_response += data["content"]
 
-        if is_logged_in and has_conversation:
-            await conversation_service.add_message(
-                conversation_id=request.conversation_id,
-                role="user",
-                content=request.message,
+        if not is_logged_in:
+            return
+
+        conversation_id = request.conversation_id
+
+        if not conversation_id:
+            title = await generate_title(request.message, full_response)
+            conversation = await conversation_service.create_conversation(
+                user_id=user["id"],
+                title=title,
+                tag=request.tag,
             )
-            await conversation_service.add_message(
-                conversation_id=request.conversation_id,
-                role="assistant",
-                content=full_response,
-            )
+            conversation_id = conversation["id"]
+
+        await conversation_service.add_message(
+            conversation_id=conversation_id,
+            role="user",
+            content=request.message,
+        )
+        await conversation_service.add_message(
+            conversation_id=conversation_id,
+            role="assistant",
+            content=full_response,
+        )
+
+        meta_data = {"type": "meta", "conversation_id": str(conversation_id)}
+        yield f"data: {json.dumps(meta_data)}\n\n"
 
     return StreamingResponse(
         event_generator(),
