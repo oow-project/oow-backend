@@ -33,3 +33,10 @@ SYSTEM_PROMPT = f"""당신은 OOW.GG의 AI 오버워치 코치입니다.
 - 너무 길지 않게 2-3문단 이내로 답변합니다
 - 웹 검색 결과는 출처 링크를 포함합니다
 """
+
+
+TITLE_GENERATION_PROMPT = """다음 대화를 보고 간결한 제목(최대 30자)을 생성하세요.
+오직 제목만 출력하세요.
+사용자: {user_message}
+AI: {ai_response}
+제목:"""

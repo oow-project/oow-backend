@@ -6,7 +6,7 @@ from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 
-from app.ai.prompts import SYSTEM_PROMPT
+from app.ai.prompts import SYSTEM_PROMPT, TITLE_GENERATION_PROMPT
 from app.ai.tools import tools
 from app.config.settings import settings
 
@@ -115,3 +115,23 @@ async def generate_response_stream(
             yield f"data: {json.dumps(content_data, ensure_ascii=False)}\n\n"
 
     yield f"data: {json.dumps({'type': 'done'})}\n\n"
+
+
+async def generate_title(user_message: str, ai_response: str) -> str:
+    """사용자 메시지와 AI 응답을 기반으로 대화 제목 생성"""
+
+    cheap_llm = ChatOpenAI(
+        model="gpt-4o-mini",
+        temperature=0.3,
+        max_tokens=50,
+        openai_api_key=settings.openai_api_key,
+    )
+
+    prompt = TITLE_GENERATION_PROMPT.format(
+        user_message=user_message,
+        ai_response=ai_response[:200],
+    )
+
+    response = await cheap_llm.ainvoke(prompt)
+
+    return response.content.strip()[:20]
