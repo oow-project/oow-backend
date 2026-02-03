@@ -88,7 +88,7 @@ def get_hero_stats(hero_key: str) -> str:
     """
     result = supabase.table("hero_stats").select("*").eq(
         "hero_key", hero_key
-    ).order("recorded_at", desc=True).limit(1).execute()
+    ).order("synced_at", desc=True).limit(1).execute()
 
     if not result.data:
         return f"{hero_key} 영웅의 통계 정보를 찾지 못했습니다."
@@ -96,8 +96,8 @@ def get_hero_stats(hero_key: str) -> str:
     stats = result.data[0]
     return (
         f"영웅: {hero_key}\n"
-        f"픽률: {stats.get('pick_rate', 'N/A')}%\n"
-        f"승률: {stats.get('win_rate', 'N/A')}%\n"
+        f"픽률: {stats.get('pickrate', 'N/A')}%\n"
+        f"승률: {stats.get('winrate', 'N/A')}%\n"
     )
 
 
