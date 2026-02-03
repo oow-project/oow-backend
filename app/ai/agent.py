@@ -1,4 +1,8 @@
+import json
+from collections.abc import AsyncGenerator
+
 from langchain_classic.agents import AgentExecutor, create_tool_calling_agent
+from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
 
@@ -48,32 +52,66 @@ def get_agent_executor() -> AgentExecutor:
     return executor
 
 
-async def generate_response(
+def convert_to_langchain_messages(history: list | None) -> list:
+    """채팅 기록을 LangChain 메시지 형식으로 변환"""
+    if not history:
+        return []
+
+    messages = []
+    for msg in history:
+        if msg.role == "user":
+            messages.append(HumanMessage(content=msg.content))
+        else:
+            messages.append(AIMessage(content=msg.content))
+    return messages
+
+
+async def generate_response_stream(
     user_input: str,
     tag: str = "general",
     chat_history: list | None = None,
-) -> str:
+) -> AsyncGenerator[str, None]:
     """
-    사용자 입력에 대한 AI 응답 생성
+    사용자 입력에 대한 AI 응답을 스트리밍으로 생성
 
     Args:
         user_input: 사용자 질문
         tag: 대화 태그 (영웅 이름 or "general")
         chat_history: 이전 대화 기록
 
-    Returns:
-        AI 응답 텍스트
+    Yields:
+        SSE 형식의 데이터 청크
     """
     executor = get_agent_executor()
 
     enhanced_input = user_input
-
     if tag != "general":
         enhanced_input = f"[현재 {tag} 영웅 관련] {user_input}"
 
-    result = await executor.ainvoke({
-        "input": enhanced_input,
-        "chat_history": chat_history or [],
-    })
+    langchain_history = convert_to_langchain_messages(chat_history)
 
-    return result["output"]
+    async for event in executor.astream_events(
+        {"input": enhanced_input, "chat_history": langchain_history},
+        version="v2",
+    ):
+        kind = event["event"]
+
+        if kind == "on_tool_start":
+            tool_name = event["name"]
+            status_data = {"type": "status", "content": f"{tool_name} 실행 중..."}
+            yield f"data: {json.dumps(status_data, ensure_ascii=False)}\n\n"
+
+        chunk = event.get("data", {}).get("chunk")
+
+        is_valid_content = (
+            kind == "on_chat_model_stream"
+            and chunk
+            and hasattr(chunk, "content")
+            and chunk.content
+        )
+
+        if is_valid_content:
+            content_data = {"type": "content", "content": chunk.content}
+            yield f"data: {json.dumps(content_data, ensure_ascii=False)}\n\n"
+
+    yield f"data: {json.dumps({'type': 'done'})}\n\n"
