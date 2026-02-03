@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 from app.ai.agent import generate_response_stream, generate_title
 from app.dependencies.auth import get_current_user_or_none
 from app.dependencies.rate_limit import check_rate_limit
-from app.schemas.chat import ChatRequest
+from app.schemas.chat import ChatMetaEvent, ChatRequest
 from app.services import conversation_service
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
@@ -65,8 +65,9 @@ async def chat(
             content=full_response,
         )
 
-        meta_data = {"type": "meta", "conversation_id": str(conversation_id)}
-        yield f"data: {json.dumps(meta_data)}\n\n"
+        meta_event = ChatMetaEvent(conversation_id=str(conversation_id))
+
+        yield f"data: {meta_event.model_dump_json(by_alias=True)}\n\n"
 
     return StreamingResponse(
         event_generator(),

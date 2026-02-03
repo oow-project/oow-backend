@@ -55,7 +55,8 @@ async def get_hero_detail(hero_key: str) -> dict:
         "name, description, icon, ability_type"
     ).eq("hero_key", hero_key).execute()
 
-    abilities_grouped = {"skill": [], "perk_major": [], "perk_minor": []}
+    abilities_grouped = {"skill": [], "perk_major": [], "perk_minor": []} 
+
     for ability in abilities_response.data:
         abilities_grouped[ability["ability_type"]].append(ability)
 

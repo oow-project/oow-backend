@@ -31,7 +31,7 @@ async def get_stats(
     platform: str = Query(default="pc"),
     gamemode: str = Query(default="competitive"),
     region: str = Query(default="asia"),
-    competitive_division: str = Query(default="all"),
+    competitive_division: str = Query(default="all", alias="competitiveDivision"),
     role: str = Query(default="all"),
     order_by: str = Query(default="winrate:desc"),
 ):
