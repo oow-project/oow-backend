@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class ConversationCreate(BaseModel):
@@ -12,11 +12,13 @@ class ConversationCreate(BaseModel):
 
 class ConversationResponse(BaseModel):
     """채팅방 응답"""
+    model_config = ConfigDict(populate_by_name=True)
+
     id: UUID
     title: str
     tag: str
-    created_at: datetime
-    updated_at: datetime
+    created_at: datetime = Field(serialization_alias="createdAt")
+    updated_at: datetime = Field(serialization_alias="updatedAt")
 
 
 class ConversationListResponse(BaseModel):
@@ -27,10 +29,12 @@ class ConversationListResponse(BaseModel):
 
 class MessageResponse(BaseModel):
     """메시지 응답"""
+    model_config = ConfigDict(populate_by_name=True)
+
     id: UUID
     role: str
     content: str
-    created_at: datetime
+    created_at: datetime = Field(serialization_alias="createdAt")
 
 
 class MessagesResponse(BaseModel):

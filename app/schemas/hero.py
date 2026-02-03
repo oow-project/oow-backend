@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class HeroItem(BaseModel):
@@ -16,10 +16,21 @@ class HeroListResponse(BaseModel):
 
 
 class Ability(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     name: str
     description: str
     icon: str
-    ability_type: Literal["skill", "perk_major", "perk_minor"]
+    ability_type: Literal["skill", "perk_major", "perk_minor"] = Field(
+        serialization_alias="abilityType"
+    )
+
+
+class GroupedAbilities(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    skill: list[Ability] = []
+    perk_major: list[Ability] = Field(default=[], serialization_alias="perkMajor")
+    perk_minor: list[Ability] = Field(default=[], serialization_alias="perkMinor")
 
 
 class Hitpoints(BaseModel):
@@ -31,7 +42,7 @@ class Hitpoints(BaseModel):
 
 class HeroDetailResponse(HeroItem):
     hitpoints: Hitpoints
-    abilities: dict[str, list[Ability]]
+    abilities: GroupedAbilities
     counters: list[HeroItem]
     synergies: list[HeroItem]
 
@@ -42,15 +53,19 @@ class HeroStatItem(HeroItem):
 
 
 class StatsFilters(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     platform: str
     gamemode: str
     region: str
-    competitive_division: str
+    competitive_division: str = Field(serialization_alias="competitiveDivision")
     role: str
 
 
 class StatsResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
     stats: list[HeroStatItem]
     filters: StatsFilters
     total: int
-    synced_at: str | None
+    synced_at: str | None = Field(default=None, serialization_alias="syncedAt")
