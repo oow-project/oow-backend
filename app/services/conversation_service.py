@@ -102,6 +102,13 @@ async def add_message(
 
     return response.data[0]
 
+def find_first_message_by_role(messages: list[dict], role: str) -> str:
+    """특정 역할의 첫 번째 메시지를 찾는다."""
+    for message in messages:
+        if message["role"] == role:
+            return message["content"]
+    return ""
+
 
 async def migrate_conversation(
     user_id: UUID,
@@ -109,11 +116,17 @@ async def migrate_conversation(
     tag: str = "general",
 ) -> dict:
     """비회원 대화를 DB로 마이그레이션"""
-    first_message = messages[0]["content"] if messages else "새 대화"
-    title = first_message[:20] + "..." if len(first_message) > 20 else first_message
+    from app.ai.agent import generate_title
+
+    first_user_message = find_first_message_by_role(messages, "user")
+    first_assistant_message = find_first_message_by_role(messages, "assistant")
+
+    if first_user_message and first_assistant_message:
+        title = await generate_title(first_user_message, first_assistant_message)
+    else:
+        title = first_user_message[:20] if first_user_message else "새 대화"
 
     conversation = await create_conversation(user_id, title, tag)
-
     for message in messages:
         await add_message(
             conversation_id=conversation["id"],
