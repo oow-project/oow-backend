@@ -127,4 +127,58 @@ def get_hero_counters(hero_key: str) -> str:
     )
 
 
-tools = [search_rag, search_web, get_hero_stats, get_hero_counters]
+@tool
+def get_hero_abilities(hero_key: str) -> str:
+    """
+    특정 영웅의 스킬 정보를 조회합니다.
+    영웅 키는 영어 소문자입니다 (예: ana, genji, wuyang, freja, vendetta)
+    신규 영웅(우양, 프레야, 벤데타)도 조회 가능합니다.
+    """
+    hero_result = supabase.table("heroes").select(
+        "name, role"
+    ).eq("key", hero_key).execute()
+
+    if not hero_result.data:
+        return f"{hero_key} 영웅 정보를 찾지 못했습니다."
+
+    hero = hero_result.data[0]
+
+    abilities_result = supabase.table("hero_abilities").select(
+        "name, description, ability_type"
+    ).eq("hero_key", hero_key).execute()
+
+    if not abilities_result.data:
+        return f"{hero_key} 영웅의 스킬 정보를 찾지 못했습니다."
+
+    abilities_grouped = {"skill": [], "perk_major": [], "perk_minor": []}
+    for ability in abilities_result.data:
+        ability_type = ability.get("ability_type", "skill")
+        if ability_type in abilities_grouped:
+            abilities_grouped[ability_type].append(ability)
+
+    output = f"영웅: {hero.get('name', hero_key)} ({hero.get('role', 'N/A')})\n\n"
+
+    skills = abilities_grouped.get("skill", [])
+    if skills:
+        output += "## 스킬\n"
+        for skill in skills:
+            output += f"- **{skill.get('name', 'N/A')}**: {skill.get('description', 'N/A')}\n"
+        output += "\n"
+
+    major_perks = abilities_grouped.get("perk_major", [])
+    if major_perks:
+        output += "## 주요 특전\n"
+        for perk in major_perks:
+            output += f"- **{perk.get('name', 'N/A')}**: {perk.get('description', 'N/A')}\n"
+        output += "\n"
+
+    minor_perks = abilities_grouped.get("perk_minor", [])
+    if minor_perks:
+        output += "## 보조 특전\n"
+        for perk in minor_perks:
+            output += f"- **{perk.get('name', 'N/A')}**: {perk.get('description', 'N/A')}\n"
+
+    return output
+
+
+tools = [search_rag, search_web, get_hero_stats, get_hero_counters, get_hero_abilities]
