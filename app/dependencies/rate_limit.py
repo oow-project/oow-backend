@@ -68,6 +68,6 @@ async def check_rate_limit(request: Request) -> dict:
     return {
         "remaining": limit - current,
         "limit": limit,
-        "reset": WINDOW_SECONDS,
+        "reset": ttl,
     }
 

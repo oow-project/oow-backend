@@ -51,13 +51,16 @@ async def search_rag(query: str) -> str:
 
 
 @tool
-def search_web(query: str) -> str:
+async def search_web(query: str) -> str:
     """
     최신 패치노트, 대회 일정, 프로 선수/팀 정보 등 시의성이 중요한 정보를 검색합니다.
     검색 결과를 요약하고 출처 링크를 반드시 포함하세요.
     """
+    import asyncio
+
     try:
-        result = tavily.search(
+        result = await asyncio.to_thread(
+            tavily.search,
             query=f"오버워치 2 {query}",
             include_domains=ALLOWED_DOMAINS,
             max_results=5,

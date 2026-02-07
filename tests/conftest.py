@@ -28,7 +28,9 @@ def mock_supabase():
     mock.auth.get_user = AsyncMock()
 
     with patch("app.config.supabase.get_supabase", return_value=mock):
-        yield mock
+        with patch("app.services.hero_service.get_supabase", return_value=mock):
+            with patch("app.services.conversation_service.get_supabase", return_value=mock):
+                yield mock
 
 
 @pytest.fixture
@@ -42,7 +44,9 @@ def mock_redis():
     mock.scan = AsyncMock(return_value=(0, []))
 
     with patch("app.config.redis.get_redis", return_value=mock):
-        yield mock
+        with patch("app.utils.cache.get_redis", return_value=mock):
+            with patch("app.dependencies.rate_limit.get_redis", return_value=mock):
+                yield mock
 
 
 @pytest.fixture

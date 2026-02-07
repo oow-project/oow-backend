@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 
 from app.ai.agent import init_llm
 from app.config.redis import init_redis
+from app.config.settings import settings
 from app.config.supabase import init_supabase
 from app.exceptions import AppError
 from app.routers import chat, conversations, heroes
@@ -27,7 +28,7 @@ app = FastAPI(title="OOW.GG API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

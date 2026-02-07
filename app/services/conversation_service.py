@@ -23,6 +23,9 @@ async def create_conversation(
         "tag": tag,
     }).execute()
 
+    if not response.data:
+        logger.error("대화 생성 실패: user_id=%s, title=%s", user_id, title)
+        raise RuntimeError("대화 생성 실패: Supabase에서 빈 응답 반환")
     return response.data[0]
 
 
@@ -103,6 +106,9 @@ async def add_message(
         "content": content,
     }).execute()
 
+    if not response.data:
+        logger.error("메시지 저장 실패: conversation_id=%s, role=%s", conversation_id, role)
+        raise RuntimeError("메시지 저장 실패: Supabase에서 빈 응답 반환")
     return response.data[0]
 
 def find_first_message_by_role(messages: list[dict], role: str) -> str:

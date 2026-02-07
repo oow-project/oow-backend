@@ -39,9 +39,13 @@ async def chat(
         ):
             yield chunk
 
-            if '"type": "content"' in chunk:
-                data = json.loads(chunk.replace("data: ", "").strip())
-                full_response += data["content"]
+            if chunk.startswith("data: "):
+                try:
+                    data = json.loads(chunk[6:].strip())
+                    if data.get("type") == "content":
+                        full_response += data.get("content", "")
+                except (json.JSONDecodeError, KeyError):
+                    pass
 
         if not is_logged_in:
             return
