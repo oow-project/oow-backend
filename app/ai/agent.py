@@ -1,4 +1,6 @@
+import asyncio
 import json
+import logging
 from collections.abc import AsyncGenerator
 
 from langchain_classic.agents import AgentExecutor, create_tool_calling_agent
@@ -6,12 +8,21 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
+from openai import RateLimitError
 
 from app.ai.prompts import SYSTEM_PROMPT, TITLE_GENERATION_PROMPT
 from app.ai.tools import tools
 from app.config.settings import settings
 
+logger = logging.getLogger(__name__)
+
 _llm: BaseChatModel | None = None
+
+MAX_CONCURRENT_LLM_REQUESTS = 50
+MAX_RETRIES = 3
+RETRY_BASE_DELAY = 2
+
+_llm_semaphore = asyncio.Semaphore(MAX_CONCURRENT_LLM_REQUESTS)
 
 
 def init_llm() -> None:
@@ -90,31 +101,51 @@ async def generate_response_stream(
 
     langchain_history = convert_to_langchain_messages(chat_history)
 
-    async for event in executor.astream_events(
-        {"input": enhanced_input, "chat_history": langchain_history},
-        version="v2",
-    ):
-        kind = event["event"]
+    async with _llm_semaphore:
+        for attempt in range(MAX_RETRIES):
+            try:
+                async for event in executor.astream_events(
+                    {"input": enhanced_input, "chat_history": langchain_history},
+                    version="v2",
+                ):
+                    kind = event["event"]
 
-        if kind == "on_tool_start":
-            tool_name = event["name"]
-            status_data = {"type": "status", "content": f"{tool_name} 실행 중..."}
-            yield f"data: {json.dumps(status_data, ensure_ascii=False)}\n\n"
+                    if kind == "on_tool_start":
+                        tool_name = event["name"]
+                        status_data = {"type": "status", "content": f"{tool_name} 실행 중..."}
+                        yield f"data: {json.dumps(status_data, ensure_ascii=False)}\n\n"
 
-        chunk = event.get("data", {}).get("chunk")
+                    chunk = event.get("data", {}).get("chunk")
 
-        is_valid_content = (
-            kind == "on_chat_model_stream"
-            and chunk
-            and hasattr(chunk, "content")
-            and chunk.content
-        )
+                    is_valid_content = (
+                        kind == "on_chat_model_stream"
+                        and chunk
+                        and hasattr(chunk, "content")
+                        and chunk.content
+                    )
 
-        if is_valid_content:
-            content_data = {"type": "content", "content": chunk.content}
-            yield f"data: {json.dumps(content_data, ensure_ascii=False)}\n\n"
+                    if is_valid_content:
+                        content_data = {"type": "content", "content": chunk.content}
+                        yield f"data: {json.dumps(content_data, ensure_ascii=False)}\n\n"
 
-    yield f"data: {json.dumps({'type': 'done'})}\n\n"
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+                return
+
+            except RateLimitError:
+                if attempt == MAX_RETRIES - 1:
+                    error_data = {
+                        "type": "error",
+                        "content": "요청이 많아 응답할 수 없습니다. 잠시 후 다시 시도해주세요.",
+                    }
+                    yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
+                    return
+
+                delay = RETRY_BASE_DELAY * (2 ** attempt)
+                logger.warning(
+                    "OpenAI Rate Limit 발생, %s초 후 재시도 (%s/%s)",
+                    delay, attempt + 1, MAX_RETRIES,
+                )
+                await asyncio.sleep(delay)
 
 
 async def generate_title(user_message: str, ai_response: str) -> str:
