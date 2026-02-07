@@ -1,7 +1,10 @@
+import logging
 from uuid import UUID
 
 from app.config.supabase import get_supabase
 from app.exceptions import NotFoundError
+
+logger = logging.getLogger(__name__)
 
 MAX_CONVERSATIONS = 30
 
@@ -127,11 +130,19 @@ async def migrate_conversation(
         title = first_user_message[:20] if first_user_message else "새 대화"
 
     conversation = await create_conversation(user_id, title, tag)
-    for message in messages:
-        await add_message(
-            conversation_id=conversation["id"],
-            role=message["role"],
-            content=message["content"],
+
+    try:
+        for message in messages:
+            await add_message(
+                conversation_id=conversation["id"],
+                role=message["role"],
+                content=message["content"],
+            )
+    except Exception:
+        logger.error(
+            "마이그레이션 메시지 저장 실패 (conversation=%s)",
+            conversation["id"],
+            exc_info=True,
         )
 
     return conversation

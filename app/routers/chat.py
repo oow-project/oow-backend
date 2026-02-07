@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -9,6 +10,8 @@ from app.dependencies.auth import get_current_user_or_none
 from app.dependencies.rate_limit import check_rate_limit
 from app.schemas.chat import ChatMetaEvent, ChatRequest
 from app.services import conversation_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
@@ -43,31 +46,37 @@ async def chat(
         if not is_logged_in:
             return
 
-        conversation_id = request.conversation_id
+        try:
+            conversation_id = request.conversation_id
 
-        if not conversation_id:
-            title = await generate_title(request.message, full_response)
-            conversation = await conversation_service.create_conversation(
-                user_id=user["id"],
-                title=title,
-                tag=request.tag,
+            if not conversation_id:
+                title = await generate_title(request.message, full_response)
+                conversation = await conversation_service.create_conversation(
+                    user_id=user["id"],
+                    title=title,
+                    tag=request.tag,
+                )
+                conversation_id = conversation["id"]
+
+            await conversation_service.add_message(
+                conversation_id=conversation_id,
+                role="user",
+                content=request.message,
             )
-            conversation_id = conversation["id"]
+            await conversation_service.add_message(
+                conversation_id=conversation_id,
+                role="assistant",
+                content=full_response,
+            )
 
-        await conversation_service.add_message(
-            conversation_id=conversation_id,
-            role="user",
-            content=request.message,
-        )
-        await conversation_service.add_message(
-            conversation_id=conversation_id,
-            role="assistant",
-            content=full_response,
-        )
+            meta_event = ChatMetaEvent(conversation_id=str(conversation_id))
 
-        meta_event = ChatMetaEvent(conversation_id=str(conversation_id))
+            yield f"data: {meta_event.model_dump_json(by_alias=True)}\n\n"
 
-        yield f"data: {meta_event.model_dump_json(by_alias=True)}\n\n"
+        except Exception:
+            logger.error(
+                "메시지 저장 실패 (user=%s)", user["id"], exc_info=True
+            )
 
     return StreamingResponse(
         event_generator(),
