@@ -32,13 +32,13 @@ def start_scheduler() -> None:
 
     _scheduler.add_job(
         sync_hero_stats,
-        trigger=CronTrigger(hour="*/3", minute=0),
+        trigger=CronTrigger(hour="4,16", minute=0),
         id="sync_hero_stats",
         max_instances=1,
     )
 
     _scheduler.start()
-    logger.info("스케줄러 시작: sync_heroes(매일 03:00), sync_hero_stats(30분마다)")
+    logger.info("스케줄러 시작: sync_heroes(매일 03:00), sync_hero_stats(매일 04:00, 16:00)")
 
 
 def shutdown_scheduler() -> None:
