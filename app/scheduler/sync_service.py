@@ -73,17 +73,20 @@ async def _upsert_hero_abilities(
     hero_key: str,
     abilities: list[dict],
 ) -> None:
-    """영웅 스킬을 upsert한다."""
-    for ability in abilities:
-        row = {
+    """영웅 스킬 목록을 hero_abilities 테이블에 upsert한다."""
+    rows = [
+        {
             "hero_key": hero_key,
             "name": ability.get("name", ""),
             "description": ability.get("description", ""),
             "icon": ability.get("icon", ""),
             "ability_type": "skill",
         }
+        for ability in abilities
+    ]
+    if rows:
         await supabase.table("hero_abilities").upsert(
-            row, on_conflict="hero_key,name"
+            rows, on_conflict="hero_key,name"
         ).execute()
 
 
@@ -200,12 +203,8 @@ async def _sync_single_stat_task(
         if stats is None:
             return 0, False
 
-        saved = 0
-        for stat in stats:
-            if stat["hero"] not in valid_keys:
-                continue
-
-            row = {
+        rows = [
+            {
                 "hero_key": stat["hero"],
                 "platform": "pc",
                 "gamemode": gamemode,
@@ -215,11 +214,15 @@ async def _sync_single_stat_task(
                 "pickrate": stat.get("pickrate"),
                 "synced_at": synced_at,
             }
+            for stat in stats
+            if stat["hero"] in valid_keys
+        ]
+        saved = len(rows)
+        if rows:
             await supabase.table("hero_stats").upsert(
-                row,
+                rows,
                 on_conflict="hero_key,platform,gamemode,region,competitive_division",
             ).execute()
-            saved += 1
 
         logger.info("[%d/%d] %s: %d명 저장", index, total, label, saved)
         return saved, True
