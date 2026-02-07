@@ -8,6 +8,23 @@ MEMBER_LIMIT = 15
 WINDOW_SECONDS = 6 * 60 * 60
 
 
+RATE_LIMIT_SCRIPT = """
+local current = redis.call('INCR', KEYS[1])
+
+if current == 1 then
+    redis.call('EXPIRE', KEYS[1], tonumber(ARGV[2]))
+end
+
+local ttl = redis.call('TTL', KEYS[1])
+
+if current > tonumber(ARGV[1]) then
+    return {current, ttl, 1}
+end
+
+return {current, ttl, 0}
+"""
+
+
 async def check_rate_limit(request: Request) -> dict:
     """
     Rate Limit을 체크하는 의존성
@@ -34,14 +51,11 @@ async def check_rate_limit(request: Request) -> dict:
         key = f"rate:guest:{ip}"
         limit = GUEST_LIMIT
 
-    current = await redis.get(key)
-    current = int(current) if current else 0
+    current, ttl, exceeded = await redis.eval(
+        RATE_LIMIT_SCRIPT, 1, key, limit, WINDOW_SECONDS
+    )
 
-    ttl = await redis.ttl(key)
-    if ttl < 0:
-        ttl = WINDOW_SECONDS
-
-    if current >= limit:
+    if exceeded:
         raise HTTPException(
             status_code=429,
             detail={
@@ -51,13 +65,9 @@ async def check_rate_limit(request: Request) -> dict:
             },
         )
 
-    pipe = redis.pipeline()
-    pipe.incr(key)
-    pipe.expire(key, WINDOW_SECONDS)
-    await pipe.execute()
-
     return {
-        "remaining": limit - current - 1,
+        "remaining": limit - current,
         "limit": limit,
         "reset": WINDOW_SECONDS,
     }
+
