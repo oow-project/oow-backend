@@ -13,4 +13,6 @@ async def init_redis():
 
 def get_redis() -> redis.Redis:
     """초기화된 Redis 클라이언트를 반환한다."""
+    if _client is None:
+        raise RuntimeError("Redis가 초기화되지 않았습니다. init_redis()를 먼저 호출하세요.")
     return _client

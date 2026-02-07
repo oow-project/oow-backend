@@ -37,6 +37,8 @@ def init_llm() -> None:
 
 def get_llm() -> BaseChatModel:
     """초기화된 LLM 인스턴스를 반환한다."""
+    if _llm is None:
+        raise RuntimeError("LLM이 초기화되지 않았습니다. init_llm()을 먼저 호출하세요.")
     return _llm
 
 

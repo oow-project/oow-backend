@@ -13,4 +13,6 @@ async def init_supabase():
 
 def get_supabase() -> AsyncClient:
     """초기화된 Supabase 클라이언트를 반환한다."""
+    if _client is None:
+        raise RuntimeError("Supabase가 초기화되지 않았습니다. init_supabase()를 먼저 호출하세요.")
     return _client
