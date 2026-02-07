@@ -34,18 +34,28 @@ async def get_or_set_cache(
     return data
 
 
-async def invalidate_cache(cache_key: str) -> int:
+async def invalidate_cache(pattern: str, batch_size: int = 100) -> int:
     """
-    캐시 무효화
+    패턴과 일치하는 캐시를 삭제한다.
 
     Args:
-        cache_key: "cache:heroes:*", "cache:stats:*" 등
+        pattern: 삭제할 캐시 키 패턴 (예: "cache:heroes:*")
+        batch_size: SCAN 1회당 스캔할 키 수
 
     Returns:
         삭제된 키 개수
     """
     redis = get_redis()
-    keys = await redis.keys(cache_key)
-    if keys:
-        return await redis.delete(*keys)
-    return 0
+    cursor = 0
+    deleted = 0
+
+    while True:
+        cursor, keys = await redis.scan(cursor, match=pattern, count=batch_size)
+
+        if keys:
+            deleted += await redis.delete(*keys)
+
+        if cursor == 0:
+            break
+
+    return deleted
