@@ -1,8 +1,29 @@
+import asyncio
 import json
+import logging
 from collections.abc import Callable
 from typing import Any
 
 from app.config.redis import get_redis
+
+logger = logging.getLogger(__name__)
+
+LOCK_TIMEOUT = 10
+LOCK_WAIT_INTERVAL = 0.1
+LOCK_WAIT_MAX_RETRIES = 50
+
+
+async def _wait_for_cache(redis, key: str, fetch_fn: Callable) -> Any:
+    """락을 획득하지 못한 요청이 캐시가 채워질 때까지 대기한다."""
+    for _ in range(LOCK_WAIT_MAX_RETRIES):
+        await asyncio.sleep(LOCK_WAIT_INTERVAL)
+        cached = await redis.get(key)
+
+        if cached:
+            return json.loads(cached)
+
+    logger.warning("캐시 대기 타임아웃, 직접 조회: %s", key)
+    return await fetch_fn()
 
 
 async def get_or_set_cache(
@@ -11,7 +32,7 @@ async def get_or_set_cache(
     ttl: int,
 ) -> Any:
     """
-    캐시 조회 후 없으면 fetch_fn 실행하여 저장
+    캐시를 조회하고, 없으면 분산 락을 사용하여 단일 요청만 DB를 조회한다.
 
     Args:
         key: Redis 키
@@ -27,11 +48,19 @@ async def get_or_set_cache(
     if cached:
         return json.loads(cached)
 
-    data = await fetch_fn()
+    lock_key = f"lock:{key}"
+    acquired = await redis.set(lock_key, "1", nx=True, ex=LOCK_TIMEOUT)
 
-    await redis.set(key, json.dumps(data), ex=ttl)
+    if not acquired:
+        return await _wait_for_cache(redis, key, fetch_fn)
 
-    return data
+    try:
+        data = await fetch_fn()
+        await redis.set(key, json.dumps(data), ex=ttl)
+
+        return data
+    finally:
+        await redis.delete(lock_key)
 
 
 async def invalidate_cache(pattern: str, batch_size: int = 100) -> int:
