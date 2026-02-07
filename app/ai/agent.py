@@ -2,6 +2,7 @@ import json
 from collections.abc import AsyncGenerator
 
 from langchain_classic.agents import AgentExecutor, create_tool_calling_agent
+from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_openai import ChatOpenAI
@@ -10,22 +11,21 @@ from app.ai.prompts import SYSTEM_PROMPT, TITLE_GENERATION_PROMPT
 from app.ai.tools import tools
 from app.config.settings import settings
 
-_llm: ChatOpenAI | None = None
+_llm: BaseChatModel | None = None
 
 
-def get_llm() -> ChatOpenAI:
-    """
-    ChatOpenAI 인스턴스를 반환
-
-    최초 호출 시 인스턴스를 생성하고, 이후에는 동일한 인스턴스를 재사용
-    """
+def init_llm() -> None:
+    """서버 시작 시 LLM 인스턴스를 초기화한다."""
     global _llm
-    if _llm is None:
-        _llm = ChatOpenAI(
-            model=settings.openai_model,
-            temperature=settings.openai_temperature,
-            openai_api_key=settings.openai_api_key,
-        )
+    _llm = ChatOpenAI(
+        model=settings.openai_model,
+        temperature=settings.openai_temperature,
+        openai_api_key=settings.openai_api_key,
+    )
+
+
+def get_llm() -> BaseChatModel:
+    """초기화된 LLM 인스턴스를 반환한다."""
     return _llm
 
 
