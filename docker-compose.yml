@@ -1,0 +1,35 @@
+services:
+  backend:
+    build: .
+    container_name: oow-backend
+    env_file: .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    container_name: oow-redis
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: always
+
+  nginx:
+    image: nginx:alpine
+    container_name: oow-nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+    restart: always
+
+volumes:
+  redis_data:
