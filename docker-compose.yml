@@ -3,6 +3,8 @@ services:
     build: .
     container_name: oow-backend
     env_file: .env
+    environment:
+      - REDIS_URL=redis://redis:6379
     depends_on:
       redis:
         condition: service_healthy
