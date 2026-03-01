@@ -47,12 +47,17 @@ def get_agent_executor() -> AgentExecutor:
     """에이전트 실행기 생성"""
     llm = get_llm()
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", SYSTEM_PROMPT.format(current_date=datetime.now().strftime('%Y년 %m월 %d일'))),
-        MessagesPlaceholder(variable_name="chat_history", optional=True),
-        ("human", "{input}"),
-        MessagesPlaceholder(variable_name="agent_scratchpad"),
-    ])
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                SYSTEM_PROMPT.format(current_date=datetime.now().strftime("%Y년 %m월 %d일")),
+            ),
+            MessagesPlaceholder(variable_name="chat_history", optional=True),
+            ("human", "{input}"),
+            MessagesPlaceholder(variable_name="agent_scratchpad"),
+        ]
+    )
 
     agent = create_tool_calling_agent(llm, tools, prompt)
 
@@ -143,10 +148,12 @@ async def generate_response_stream(
                     yield f"data: {json.dumps(error_data, ensure_ascii=False)}\n\n"
                     return
 
-                delay = RETRY_BASE_DELAY * (2 ** attempt)
+                delay = RETRY_BASE_DELAY * (2**attempt)
                 logger.warning(
                     "OpenAI Rate Limit 발생, %s초 후 재시도 (%s/%s)",
-                    delay, attempt + 1, MAX_RETRIES,
+                    delay,
+                    attempt + 1,
+                    MAX_RETRIES,
                 )
                 await asyncio.sleep(delay)
 

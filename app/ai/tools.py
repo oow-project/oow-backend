@@ -1,3 +1,5 @@
+import asyncio
+
 from langchain_core.tools import tool
 from langchain_openai import OpenAIEmbeddings
 from supabase import create_client
@@ -18,6 +20,7 @@ ALLOWED_DOMAINS = [
     "overwatch.inven.co.kr",
     "namu.wiki",
 ]
+PATCH_NOTES_URL = "https://overwatch.blizzard.com/ko-kr/news/patch-notes/"
 
 
 @tool
@@ -53,11 +56,9 @@ async def search_rag(query: str) -> str:
 @tool
 async def search_web(query: str) -> str:
     """
-    최신 패치노트, 대회 일정, 프로 선수/팀 정보 등 시의성이 중요한 정보를 검색합니다.
+    대회 일정, 프로 선수/팀 정보 등 시의성이 중요한 정보를 검색합니다.
     검색 결과를 요약하고 출처 링크를 반드시 포함하세요.
     """
-    import asyncio
-
     try:
         result = await asyncio.to_thread(
             tavily.search,
@@ -71,11 +72,7 @@ async def search_web(query: str) -> str:
 
         contents = []
         for item in result["results"]:
-            contents.append(
-                f"제목: {item['title']}\n"
-                f"내용: {item['content']}\n"
-                f"출처: {item['url']}"
-            )
+            contents.append(f"제목: {item['title']}\n내용: {item['content']}\n출처: {item['url']}")
 
         return "\n\n---\n\n".join(contents)
 
@@ -89,9 +86,14 @@ def get_hero_stats(hero_key: str) -> str:
     특정 영웅의 통계 정보(픽률, 승률 등)를 조회합니다.
     영웅 키는 영어 소문자입니다 (예: ana, genji, reinhardt)
     """
-    result = supabase.table("hero_stats").select("*").eq(
-        "hero_key", hero_key
-    ).order("synced_at", desc=True).limit(1).execute()
+    result = (
+        supabase.table("hero_stats")
+        .select("*")
+        .eq("hero_key", hero_key)
+        .order("synced_at", desc=True)
+        .limit(1)
+        .execute()
+    )
 
     if not result.data:
         return f"{hero_key} 영웅의 통계 정보를 찾지 못했습니다."
@@ -110,9 +112,9 @@ def get_hero_counters(hero_key: str) -> str:
     특정 영웅의 카운터와 시너지 영웅을 조회합니다.
     영웅 키는 영어 소문자입니다 (예: ana, genji, reinhardt)
     """
-    result = supabase.table("heroes").select(
-        "name, counters, synergies"
-    ).eq("key", hero_key).execute()
+    result = (
+        supabase.table("heroes").select("name, counters, synergies").eq("key", hero_key).execute()
+    )
 
     if not result.data:
         return f"{hero_key} 영웅 정보를 찾지 못했습니다."
@@ -136,18 +138,19 @@ def get_hero_abilities(hero_key: str) -> str:
     특정 영웅의 스킬 정보를 조회합니다.
     영웅 키는 영어 소문자입니다 (예: ana, genji, wuyang, freja, vendetta)
     """
-    hero_result = supabase.table("heroes").select(
-        "name, role"
-    ).eq("key", hero_key).execute()
+    hero_result = supabase.table("heroes").select("name, role").eq("key", hero_key).execute()
 
     if not hero_result.data:
         return f"{hero_key} 영웅 정보를 찾지 못했습니다."
 
     hero = hero_result.data[0]
 
-    abilities_result = supabase.table("hero_abilities").select(
-        "name, description, ability_type"
-    ).eq("hero_key", hero_key).execute()
+    abilities_result = (
+        supabase.table("hero_abilities")
+        .select("name, description, ability_type")
+        .eq("hero_key", hero_key)
+        .execute()
+    )
 
     if not abilities_result.data:
         return f"{hero_key} 영웅의 스킬 정보를 찾지 못했습니다."
@@ -183,4 +186,40 @@ def get_hero_abilities(hero_key: str) -> str:
     return output
 
 
-tools = [search_rag, search_web, get_hero_stats, get_hero_counters, get_hero_abilities]
+@tool
+async def get_patch_notes() -> str:
+    """
+    오버워치 공식 최신 패치노트를 조회합니다.
+    패치노트, 밸런스 변경, 버그 수정, 영웅 너프/버프 관련 질문에 사용하세요.
+    """
+    try:
+        result = await asyncio.to_thread(
+            tavily.extract,
+            urls=[PATCH_NOTES_URL],
+        )
+
+        if not result.get("results"):
+            return "패치노트를 가져올 수 없습니다."
+
+        raw_content = result["results"][0].get("raw_content", "")
+
+        if not raw_content:
+            return "패치노트 내용을 추출할 수 없습니다."
+
+        lines = raw_content.splitlines()
+        cleaned = "\n".join(line for line in lines if line.strip())
+
+        return f"출처: {PATCH_NOTES_URL}\n\n{cleaned[:3000]}"
+
+    except Exception as e:
+        return f"패치노트 조회 중 오류가 발생했습니다: {e}"
+
+
+tools = [
+    search_rag,
+    search_web,
+    get_patch_notes,
+    get_hero_stats,
+    get_hero_counters,
+    get_hero_abilities,
+]
