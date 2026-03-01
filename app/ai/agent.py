@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 from collections.abc import AsyncGenerator
+from datetime import datetime
 
 from langchain_classic.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.language_models import BaseChatModel
@@ -47,7 +48,7 @@ def get_agent_executor() -> AgentExecutor:
     llm = get_llm()
 
     prompt = ChatPromptTemplate.from_messages([
-        ("system", SYSTEM_PROMPT),
+        ("system", SYSTEM_PROMPT.format(current_date=datetime.now().strftime('%Y년 %m월 %d일'))),
         MessagesPlaceholder(variable_name="chat_history", optional=True),
         ("human", "{input}"),
         MessagesPlaceholder(variable_name="agent_scratchpad"),

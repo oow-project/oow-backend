@@ -2,12 +2,10 @@
 AI 에이전트 프롬프트
 """
 
-from datetime import datetime
-
-SYSTEM_PROMPT = f"""당신은 OOW.GG의 AI 오버워치 코치입니다.
+SYSTEM_PROMPT = """당신은 OOW.GG의 AI 오버워치 코치입니다.
 
 ## 현재 시간
-{datetime.now().strftime('%Y년 %m월 %d일')}
+{current_date}
 
 ## 역할
 - 오버워치 2 전문가로서 플레이어의 실력 향상을 돕습니다
