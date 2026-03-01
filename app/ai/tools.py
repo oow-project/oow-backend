@@ -61,7 +61,7 @@ async def search_web(query: str) -> str:
     try:
         result = await asyncio.to_thread(
             tavily.search,
-            query=f"오버워치 2 {query}",
+            query=f"오버워치 {query}",
             include_domains=ALLOWED_DOMAINS,
             max_results=5,
         )
@@ -135,7 +135,6 @@ def get_hero_abilities(hero_key: str) -> str:
     """
     특정 영웅의 스킬 정보를 조회합니다.
     영웅 키는 영어 소문자입니다 (예: ana, genji, wuyang, freja, vendetta)
-    신규 영웅(우양, 프레야, 벤데타)도 조회 가능합니다.
     """
     hero_result = supabase.table("heroes").select(
         "name, role"
