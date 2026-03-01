@@ -7,13 +7,12 @@ hero_service.py 단위 테스트
 3. 통계 조회 — 6개 파라미터 검증 + order_by 파싱
 """
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
 from app.exceptions import InvalidParameterError, NotFoundError
 from app.services.hero_service import get_hero_detail, get_hero_stats, get_heroes
-
 
 MOCK_HEROES = [
     {"key": "ana", "name": "Ana", "portrait": "ana.png", "role": "support"},

@@ -13,9 +13,6 @@ heroes API 통합 테스트
 import json
 from unittest.mock import MagicMock
 
-import pytest
-
-
 MOCK_HEROES = [
     {"key": "ana", "name": "Ana", "portrait": "ana.png", "role": "support"},
     {"key": "reinhardt", "name": "Reinhardt", "portrait": "rein.png", "role": "tank"},
