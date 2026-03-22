@@ -36,7 +36,10 @@ async def get_stats(
     order_by: str = Query(default="winrate:desc"),
 ):
     """영웅 통계를 조회한다."""
-    cache_key = f"cache:stats:{platform}:{gamemode}:{region}:{competitive_division}:{role}:{order_by}"
+    cache_key = (
+        f"cache:stats:{platform}:{gamemode}:{region}:"
+        f"{competitive_division}:{role}:{order_by}"
+    )
 
     return await get_or_set_cache(
         key=cache_key,
