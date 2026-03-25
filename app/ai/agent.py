@@ -120,7 +120,12 @@ async def generate_response_stream(
 
                     if kind == "on_tool_start":
                         tool_name = event["name"]
-                        status_data = {"type": "status", "content": f"{tool_name} 실행 중..."}
+                        status_data = {"type": "tool_start", "tool": tool_name}
+                        yield f"data: {json.dumps(status_data, ensure_ascii=False)}\n\n"
+
+                    if kind == "on_tool_end":
+                        tool_name = event["name"]
+                        status_data = {"type": "tool_end", "tool": tool_name}
                         yield f"data: {json.dumps(status_data, ensure_ascii=False)}\n\n"
 
                     chunk = event.get("data", {}).get("chunk")
